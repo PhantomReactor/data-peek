@@ -15,12 +15,19 @@ import {
   Trash2
 } from 'lucide-react'
 
+import { ModeToggle } from '@/components/mode-toggle'
 import { NavFavorites } from '@/components/nav-favorites'
 import { NavMain } from '@/components/nav-main'
 import { NavSecondary } from '@/components/nav-secondary'
 import { NavWorkspaces } from '@/components/nav-workspaces'
 import { TeamSwitcher } from '@/components/team-switcher'
-import { Sidebar, SidebarContent, SidebarHeader, SidebarRail } from '@/components/ui/sidebar'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail
+} from '@/components/ui/sidebar'
 
 // This is sample data.
 const data = {
@@ -255,8 +262,8 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar className="border-r-0" {...props}>
-      <SidebarHeader>
+    <Sidebar className="border-r-0 bg-sidebar/80 backdrop-blur-xl" {...props}>
+      <SidebarHeader className="pt-10">
         <TeamSwitcher teams={data.teams} />
         <NavMain items={data.navMain} />
       </SidebarHeader>
@@ -265,6 +272,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavWorkspaces workspaces={data.workspaces} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
+      <SidebarFooter>
+        <ModeToggle />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )
