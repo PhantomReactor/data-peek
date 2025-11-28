@@ -52,17 +52,16 @@ function FKPanel({
     setTimeout(() => setCopiedField(null), 1500)
   }
 
-  // Calculate offset for stacking effect
-  const offset = (total - 1 - index) * 8
+  // Calculate offset for stacking effect - larger offset to see each panel
+  const offset = (total - 1 - index) * 50
   const zIndex = 50 + index
 
   return (
     <div
-      className="fixed inset-y-0 right-0 w-[420px] bg-background border-l border-border shadow-2xl flex flex-col transition-transform duration-300"
+      className="fixed inset-y-0 right-0 w-[420px] bg-background border-l border-border shadow-2xl flex flex-col transition-transform duration-200"
       style={{
         transform: `translateX(-${offset}px)`,
-        zIndex,
-        opacity: index === total - 1 ? 1 : 0.95
+        zIndex
       }}
     >
       {/* Header */}
@@ -203,7 +202,7 @@ export function FKPanelStack({
         onClick={onCloseAll}
       />
 
-      {/* Panels */}
+      {/* All Panels stacked */}
       {panels.map((panel, index) => (
         <FKPanel
           key={panel.id}
@@ -211,6 +210,7 @@ export function FKPanelStack({
           index={index}
           total={panels.length}
           breadcrumbs={getBreadcrumbs(index)}
+          activeIndex={index}
           onClose={() => onClose(panel.id)}
           onDrillDown={onDrillDown}
           onOpenInTab={onOpenInTab}
