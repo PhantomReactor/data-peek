@@ -257,4 +257,61 @@
   .dark ::selection {
     background: oklch(0.65 0.15 250 / 0.4);
   }
+
+  /* ========================================
+     Native App Behaviors
+     ======================================== */
+
+  /* UI elements should not be selectable */
+  nav,
+  aside,
+  header,
+  footer,
+  .sidebar,
+  .toolbar,
+  .tabs,
+  .titlebar,
+  button,
+  label,
+  [role='button'],
+  [role='tab'],
+  [role='menuitem'],
+  [role='treeitem'] {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Content areas should be selectable */
+  .query-results,
+  .editor-content,
+  pre,
+  code,
+  input,
+  textarea,
+  [contenteditable='true'] {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  /* Remove default ugly focus ring */
+  *:focus {
+    outline: none;
+  }
+
+  /* Add native-feeling focus ring for keyboard navigation */
+  *:focus-visible {
+    outline: 2px solid oklch(0.45 0.15 250 / 0.5);
+    outline-offset: 2px;
+  }
+
+  .dark *:focus-visible {
+    outline-color: oklch(0.65 0.15 250 / 0.6);
+  }
+
+  /* Prevent accidental image/text drag in UI */
+  img,
+  svg {
+    -webkit-user-drag: none;
+    user-drag: none;
+  }
 }

@@ -28,6 +28,13 @@ interface DataPeekApi {
       analyze: boolean
     ) => Promise<IpcResponse<{ plan: unknown; durationMs: number }>>
   }
+  menu: {
+    onNewTab: (callback: () => void) => () => void
+    onCloseTab: (callback: () => void) => () => void
+    onExecuteQuery: (callback: () => void) => () => void
+    onFormatSql: (callback: () => void) => () => void
+    onClearResults: (callback: () => void) => () => void
+  }
 }
 
 declare global {

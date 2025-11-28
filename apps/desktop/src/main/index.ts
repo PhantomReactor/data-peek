@@ -14,6 +14,9 @@ import type {
   EditResult
 } from '@shared/index'
 import { buildQuery, validateOperation, buildPreviewSql } from './sql-builder'
+import { createMenu } from './menu'
+import { setupContextMenu } from './context-menu'
+import { getWindowState, trackWindowState } from './window-state'
 
 // ============================================
 // PostgreSQL OID to Type Name Mapping
@@ -107,15 +110,24 @@ async function initStore(): Promise<void> {
   })
 }
 
-function createWindow(): void {
+// Store main window reference for macOS hide-on-close behavior
+let mainWindow: BrowserWindow | null = null
+let forceQuit = false
+
+async function createWindow(): Promise<void> {
+  // Get saved window state
+  const windowState = await getWindowState()
+
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+  mainWindow = new BrowserWindow({
+    x: windowState.x,
+    y: windowState.y,
+    width: windowState.width,
+    height: windowState.height,
     minWidth: 900,
     minHeight: 600,
     show: false,
-    autoHideMenuBar: true,
+    autoHideMenuBar: false, // Show menu bar for native shortcuts
     // macOS-style window
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 18 },
@@ -123,6 +135,15 @@ function createWindow(): void {
     visualEffectState: 'active',
     transparent: true,
     backgroundColor: '#00000000',
+    // Windows titlebar overlay
+    ...(process.platform === 'win32' && {
+      titleBarStyle: 'hidden',
+      titleBarOverlay: {
+        color: '#1e1e1e',
+        symbolColor: '#ffffff',
+        height: 40
+      }
+    }),
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -130,8 +151,27 @@ function createWindow(): void {
     }
   })
 
+  // Track window state for persistence
+  trackWindowState(mainWindow)
+
+  // Restore maximized state
+  if (windowState.isMaximized) {
+    mainWindow.maximize()
+  }
+
+  // Setup context menu
+  setupContextMenu(mainWindow)
+
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow?.show()
+  })
+
+  // macOS: hide instead of close (like native apps)
+  mainWindow.on('close', (e) => {
+    if (process.platform === 'darwin' && !forceQuit) {
+      e.preventDefault()
+      mainWindow?.hide()
+    }
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -155,8 +195,11 @@ app.whenReady().then(async () => {
   // Initialize electron-store (ESM module)
   await initStore()
 
+  // Create native application menu
+  createMenu()
+
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.datapeek')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -164,8 +207,6 @@ app.whenReady().then(async () => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
-
-  // IPC test
 
   // IPC Handlers
   ipcMain.handle('db:connect', async (_, config) => {
@@ -569,13 +610,23 @@ app.whenReady().then(async () => {
     }
   })
 
-  createWindow()
+  await createWindow()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow()
+    } else if (mainWindow) {
+      // Show hidden window when clicking dock icon
+      mainWindow.show()
+    }
   })
+})
+
+// macOS: set forceQuit flag before quitting
+app.on('before-quit', () => {
+  forceQuit = true
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

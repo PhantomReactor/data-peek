@@ -39,6 +39,34 @@ const api = {
       analyze: boolean
     ): Promise<IpcResponse<{ plan: unknown; durationMs: number }>> =>
       ipcRenderer.invoke('db:explain', { config, query, analyze })
+  },
+  // Menu event listeners
+  menu: {
+    onNewTab: (callback: () => void): (() => void) => {
+      const handler = (): void => callback()
+      ipcRenderer.on('menu:new-tab', handler)
+      return () => ipcRenderer.removeListener('menu:new-tab', handler)
+    },
+    onCloseTab: (callback: () => void): (() => void) => {
+      const handler = (): void => callback()
+      ipcRenderer.on('menu:close-tab', handler)
+      return () => ipcRenderer.removeListener('menu:close-tab', handler)
+    },
+    onExecuteQuery: (callback: () => void): (() => void) => {
+      const handler = (): void => callback()
+      ipcRenderer.on('menu:execute-query', handler)
+      return () => ipcRenderer.removeListener('menu:execute-query', handler)
+    },
+    onFormatSql: (callback: () => void): (() => void) => {
+      const handler = (): void => callback()
+      ipcRenderer.on('menu:format-sql', handler)
+      return () => ipcRenderer.removeListener('menu:format-sql', handler)
+    },
+    onClearResults: (callback: () => void): (() => void) => {
+      const handler = (): void => callback()
+      ipcRenderer.on('menu:clear-results', handler)
+      return () => ipcRenderer.removeListener('menu:clear-results', handler)
+    }
   }
 }
 
