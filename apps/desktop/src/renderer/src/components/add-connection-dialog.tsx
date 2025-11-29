@@ -13,6 +13,7 @@ import {
   SheetTitle
 } from '@/components/ui/sheet'
 import { useConnectionStore, type Connection } from '@/stores'
+import { PostgreSQLIcon, MySQLIcon } from './database-icons'
 import type { DatabaseType } from '@shared/index'
 
 interface AddConnectionDialogProps {
@@ -280,6 +281,7 @@ export function AddConnectionDialog({
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
+                <PostgreSQLIcon className="size-4" />
                 PostgreSQL
               </button>
               <button
@@ -291,6 +293,7 @@ export function AddConnectionDialog({
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
+                <MySQLIcon className="size-4" />
                 MySQL
               </button>
             </div>

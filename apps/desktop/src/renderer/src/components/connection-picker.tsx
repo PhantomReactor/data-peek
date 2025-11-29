@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Database, Search, Plus, Loader2, FolderOpen } from 'lucide-react'
+import { Search, Plus, Loader2, FolderOpen } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useConnectionStore } from '@/stores'
 import { cn } from '@/lib/utils'
 import { AddConnectionDialog } from './add-connection-dialog'
+import { DatabaseIcon } from './database-icons'
 
 interface ConnectionPickerProps {
   open: boolean
@@ -180,7 +181,7 @@ export function ConnectionPicker({ open, onOpenChange }: ConnectionPickerProps) 
                             {connection.isConnecting ? (
                               <Loader2 className="size-4 animate-spin" />
                             ) : (
-                              <Database className="size-4" />
+                              <DatabaseIcon dbType={connection.dbType} className="size-4" />
                             )}
                             {connection.isConnected && !connection.isConnecting && (
                               <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-green-500 ring-2 ring-background" />

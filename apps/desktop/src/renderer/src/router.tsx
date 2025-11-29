@@ -9,6 +9,7 @@ import {
 import { useState, useEffect, useCallback } from 'react'
 import { Moon, Sun, Monitor } from 'lucide-react'
 import { ThemeProvider, useTheme } from '@/components/theme-provider'
+import { DatabaseIcon } from '@/components/database-icons'
 import { AppSidebar } from '@/components/app-sidebar'
 import { NavActions } from '@/components/nav-actions'
 import { Separator } from '@/components/ui/separator'
@@ -94,6 +95,7 @@ function RootLayout() {
                     <span
                       className={`size-1.5 rounded-full ${activeConnection.isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}
                     />
+                    <DatabaseIcon dbType={activeConnection.dbType} className="size-4" />
                     <span className="text-sm text-foreground">{activeConnection.name}</span>
                   </div>
                 </>
