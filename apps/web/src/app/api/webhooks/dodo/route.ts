@@ -18,8 +18,7 @@ type DodoEventType =
   | "payment.failed"
   | "subscription.active"
   | "subscription.renewed"
-  | "subscription.cancelled"
-  | "license_key.created";
+  | "subscription.cancelled";
 
 interface DodoWebhookPayload {
   business_id: string;
@@ -30,21 +29,16 @@ interface DodoWebhookPayload {
     payment_id?: string;
     subscription_id?: string;
     product_id?: string;
-    id?: string; // For license keys
     customer?: {
       email: string;
       name?: string;
       customer_id: string;
     };
-    customer_id?: string; // For license keys
     metadata?: Record<string, string>;
     // Payment specific
     total_amount?: number;
     currency?: string;
     status?: string;
-    // License key specific
-    key?: string;
-    activations_limit?: number;
   };
 }
 
@@ -52,7 +46,7 @@ interface DodoWebhookPayload {
 function getEventId(event: DodoWebhookPayload): string {
   const { data, type, timestamp } = event;
   // Try various ID fields, fallback to type + timestamp
-  return data.payment_id || data.subscription_id || data.id || `${type}-${timestamp}`;
+  return data.payment_id || data.subscription_id || `${type}-${timestamp}`;
 }
 
 // Send welcome email with license key
@@ -188,8 +182,7 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        // Find or create customer (license will be created by license_key.created event)
-        // Check by dodoCustomerId first (in case license_key.created already created the customer)
+        // Find or create customer
         let customer = await db.query.customers.findFirst({
           where: eq(customers.dodoCustomerId, data.customer.customer_id),
         });
@@ -223,7 +216,40 @@ export async function POST(request: NextRequest) {
           console.log(`Customer already exists: ${data.customer.email}`);
         }
 
-        console.log(`Payment succeeded for ${data.customer.email}: ${data.payment_id}`);
+        // Check if license already exists for this payment (idempotency)
+        const existingLicense = await db.query.licenses.findFirst({
+          where: eq(licenses.dodoPaymentId, data.payment_id || ""),
+        });
+
+        if (existingLicense) {
+          console.log(`License already exists for payment ${data.payment_id}`);
+          break;
+        }
+
+        // Generate license key and create license
+        const licenseKey = generateLicenseKey("DPRO");
+        const updatesUntil = calculateUpdatesUntil();
+
+        await db.insert(licenses).values({
+          customerId: customer.id,
+          licenseKey,
+          plan: "pro",
+          status: "active",
+          maxActivations: 3,
+          dodoPaymentId: data.payment_id,
+          dodoProductId: data.product_id,
+          updatesUntil,
+        });
+
+        // Send welcome email with license key
+        await sendWelcomeEmail(
+          customer.email,
+          customer.name || undefined,
+          licenseKey,
+          updatesUntil
+        );
+
+        console.log(`Payment succeeded for ${data.customer.email}: ${data.payment_id}, license: ${licenseKey}`);
         break;
       }
 
@@ -253,89 +279,8 @@ export async function POST(request: NextRequest) {
 
       case "payment.failed": {
         const { data } = event;
-        console.log(
-          `Payment failed: ${data.payment_id}`
-        );
+        console.log(`Payment failed: ${data.payment_id}`);
         // Could send a failed payment notification email here
-        break;
-      }
-
-      case "license_key.created": {
-        const { data } = event;
-        console.log(`Processing license_key.created: key=${data.key}, customer_id=${data.customer_id}`);
-
-        if (!data.key || !data.customer_id) {
-          console.log("Missing key or customer_id in license_key.created event");
-          break;
-        }
-
-        // Find customer by Dodo customer ID
-        console.log(`Looking up customer with dodoCustomerId: ${data.customer_id}`);
-        let customer = await db.query.customers.findFirst({
-          where: eq(customers.dodoCustomerId, data.customer_id),
-        });
-
-        // If customer not found, fetch from Dodo API and create
-        // This handles race condition when license_key.created arrives before payment.succeeded
-        if (!customer) {
-          console.log(`Customer not found locally, fetching from Dodo API...`);
-          try {
-            const dodoCustomer = await dodo.customers.retrieve(data.customer_id);
-            console.log(`Fetched customer from Dodo: ${dodoCustomer.email}`);
-
-            // Create customer in our database
-            const [newCustomer] = await db
-              .insert(customers)
-              .values({
-                email: dodoCustomer.email,
-                name: dodoCustomer.name || undefined,
-                dodoCustomerId: data.customer_id,
-              })
-              .returning();
-            customer = newCustomer;
-            console.log(`Customer created from Dodo API: ${customer.email}`);
-          } catch (dodoError) {
-            console.error(`Failed to fetch customer from Dodo API:`, dodoError);
-            break;
-          }
-        } else {
-          console.log(`Found customer: ${customer.email}`);
-        }
-
-        // Check if license already exists for this payment
-        const existingLicense = await db.query.licenses.findFirst({
-          where: eq(licenses.dodoPaymentId, data.payment_id || ""),
-        });
-
-        if (existingLicense) {
-          console.log(`License already exists for payment ${data.payment_id}`);
-          break;
-        }
-
-        // Generate our own license key
-        const licenseKey = generateLicenseKey("DPRO");
-        const updatesUntil = calculateUpdatesUntil();
-
-        await db.insert(licenses).values({
-          customerId: customer.id,
-          licenseKey, // Use our own generated key!
-          plan: "pro",
-          status: "active",
-          maxActivations: 3,
-          dodoPaymentId: data.payment_id,
-          dodoProductId: data.product_id,
-          updatesUntil,
-        });
-
-        // Send welcome email with our license key
-        await sendWelcomeEmail(
-          customer.email,
-          customer.name || undefined,
-          licenseKey,
-          updatesUntil
-        );
-
-        console.log(`License created for ${customer.email}: ${licenseKey}`);
         break;
       }
 
