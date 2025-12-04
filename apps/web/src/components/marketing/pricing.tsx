@@ -6,9 +6,11 @@ import {
   Heart,
   Shield,
   Sparkles,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { CheckoutButton } from "./checkout-button";
+import { TeamCheckoutButton } from "./team-checkout-button";
 
 export function Pricing() {
   return (
@@ -42,7 +44,7 @@ export function Pricing() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto pt-4">
           {/* Personal - Free */}
           <div className="relative rounded-2xl p-6 sm:p-8 bg-[--color-surface] border border-[--color-border] flex flex-col">
             <div className="mb-6">
@@ -54,7 +56,7 @@ export function Pricing() {
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 <span
-                  className="text-5xl font-bold"
+                  className="text-4xl sm:text-5xl font-bold"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
                   $0
@@ -62,7 +64,7 @@ export function Pricing() {
                 <span className="text-[--color-text-muted]">forever</span>
               </div>
               <p className="text-sm text-[--color-text-secondary]">
-                For personal projects, learning, and open source
+                For personal projects & learning
               </p>
             </div>
 
@@ -72,7 +74,6 @@ export function Pricing() {
                 "AI Assistant (BYOK)",
                 "PostgreSQL, MySQL, SQL Server",
                 "Unlimited connections",
-                "Unlimited query history",
                 "All future updates",
               ].map((feature) => (
                 <li key={feature} className="flex items-center gap-3">
@@ -117,15 +118,15 @@ export function Pricing() {
                 </h3>
                 <div className="flex items-baseline gap-3 mb-2">
                   <span
-                    className="text-5xl font-bold text-[--color-accent]"
+                    className="text-4xl sm:text-5xl font-bold text-[--color-accent]"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
                     $29
                   </span>
-                  <span className="text-xl text-[--color-text-muted] line-through">
+                  <span className="text-lg text-[--color-text-muted] line-through">
                     $99
                   </span>
-                  <span className="text-[--color-text-muted]">one-time</span>
+                  <span className="text-[--color-text-muted] text-sm">one-time</span>
                 </div>
                 <p className="text-sm text-[--color-text-secondary]">
                   For commercial use at work
@@ -140,7 +141,6 @@ export function Pricing() {
                   "1 year of updates included",
                   "3 device activations",
                   "Perpetual fallback license",
-                  "30-day money-back guarantee",
                 ].map((feature) => (
                   <li key={feature} className="flex items-center gap-3">
                     <Check className="w-4 h-4 text-[--color-accent] shrink-0" />
@@ -151,6 +151,51 @@ export function Pricing() {
 
               <CheckoutButton className="w-full text-base" />
             </div>
+          </div>
+
+          {/* Team */}
+          <div className="relative rounded-2xl p-6 sm:p-8 bg-[--color-surface] border border-[--color-border] flex flex-col">
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-5 h-5 text-[#a855f7]" />
+                <h3
+                  className="text-xl font-medium"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Team
+                </h3>
+              </div>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span
+                  className="text-4xl sm:text-5xl font-bold"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  $19
+                </span>
+                <span className="text-[--color-text-muted]">/seat</span>
+              </div>
+              <p className="text-sm text-[--color-text-secondary]">
+                For teams of 3+ people
+              </p>
+            </div>
+
+            <ul className="space-y-3 mb-8 flex-1">
+              {[
+                "Everything in Pro",
+                "Centralized team billing",
+                "Invite & manage members",
+                "2 devices per team member",
+                "Team license dashboard",
+                "Priority support",
+              ].map((feature) => (
+                <li key={feature} className="flex items-center gap-3">
+                  <Check className="w-4 h-4 text-[#a855f7] shrink-0" />
+                  <span className="text-sm">{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <TeamCheckoutButton className="w-full text-base" />
           </div>
         </div>
 
