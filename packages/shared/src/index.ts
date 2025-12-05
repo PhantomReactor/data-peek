@@ -1,4 +1,40 @@
 // ============================================
+// App Constants
+// ============================================
+
+/**
+ * Base URL for the data-peek website
+ */
+export const DATAPEEK_BASE_URL = 'https://www.datapeek.dev'
+
+/**
+ * UTM parameters for tracking
+ */
+export interface UTMParams {
+  source?: string
+  medium?: string
+  campaign?: string
+  content?: string
+}
+
+/**
+ * Build a URL with UTM tracking parameters
+ */
+export function buildTrackingUrl(path: string, utm: UTMParams = {}): string {
+  const params = new URLSearchParams()
+
+  if (utm.source) params.set('utm_source', utm.source)
+  if (utm.medium) params.set('utm_medium', utm.medium)
+  if (utm.campaign) params.set('utm_campaign', utm.campaign)
+  if (utm.content) params.set('utm_content', utm.content)
+
+  const queryString = params.toString()
+  const separator = path.includes('?') ? '&' : '?'
+
+  return `${DATAPEEK_BASE_URL}${path}${queryString ? separator + queryString : ''}`
+}
+
+// ============================================
 // AI Types - Shared across main and renderer
 // ============================================
 
