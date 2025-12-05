@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-router'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Moon, Sun, Monitor, Sparkles, Command } from 'lucide-react'
+import { useAutoUpdater } from '@/hooks/use-auto-updater'
 import { ThemeProvider, useTheme } from '@/components/theme-provider'
 import {
   CommandPalette,
@@ -32,6 +33,7 @@ import { LicenseStatusIndicator } from '@/components/license-status-indicator'
 import { LicenseActivationModal } from '@/components/license-activation-modal'
 import { LicenseSettingsModal } from '@/components/license-settings-modal'
 import { AIChatPanel, AISettingsModal } from '@/components/ai'
+import { Notifications } from '@/components/notifications'
 import { useAIStore } from '@/stores/ai-store'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -448,10 +450,14 @@ function LayoutContent() {
 
 // Root Layout wrapper that provides context
 function RootLayout() {
+  // Initialize auto-updater notifications
+  useAutoUpdater()
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="data-peek-theme">
       <SidebarProvider>
         <LayoutContent />
+        <Notifications />
       </SidebarProvider>
     </ThemeProvider>
   )
