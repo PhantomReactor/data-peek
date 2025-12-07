@@ -24,6 +24,10 @@ import type {
 } from '../db-adapter'
 import { registerQuery, unregisterQuery } from '../query-tracker'
 import { closeTunnel, createTunnel } from '../ssh-tunnel-service'
+import { splitStatements } from '../lib/sql-parser'
+
+/** Split SQL into statements for MSSQL */
+const splitMssqlStatements = (sqlText: string) => splitStatements(sqlText, 'mssql')
 
 const MSSQL_TYPE_MAP: Record<number, string> = {
   34: 'image',
@@ -193,129 +197,6 @@ function toMSSQLConfig(config: ConnectionConfig): sql.config {
 }
 
 /**
- * Split SQL into individual statements, respecting string literals and comments
- */
-function splitStatements(sqlText: string): string[] {
-  const statements: string[] = []
-  let current = ''
-  let i = 0
-
-  while (i < sqlText.length) {
-    const char = sqlText[i]
-    const nextChar = sqlText[i + 1]
-
-    // Handle single-quoted strings
-    if (char === "'") {
-      current += char
-      i++
-      while (i < sqlText.length) {
-        if (sqlText[i] === "'" && sqlText[i + 1] === "'") {
-          current += "''"
-          i += 2
-        } else if (sqlText[i] === "'") {
-          current += "'"
-          i++
-          break
-        } else {
-          current += sqlText[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Handle bracket-quoted identifiers (MSSQL-specific)
-    if (char === '[') {
-      current += char
-      i++
-      while (i < sqlText.length) {
-        if (sqlText[i] === ']' && sqlText[i + 1] === ']') {
-          current += ']]'
-          i += 2
-        } else if (sqlText[i] === ']') {
-          current += ']'
-          i++
-          break
-        } else {
-          current += sqlText[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Handle double-quoted identifiers
-    if (char === '"') {
-      current += char
-      i++
-      while (i < sqlText.length) {
-        if (sqlText[i] === '"' && sqlText[i + 1] === '"') {
-          current += '""'
-          i += 2
-        } else if (sqlText[i] === '"') {
-          current += '"'
-          i++
-          break
-        } else {
-          current += sqlText[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Handle line comments (--)
-    if (char === '-' && nextChar === '-') {
-      current += '--'
-      i += 2
-      while (i < sqlText.length && sqlText[i] !== '\n') {
-        current += sqlText[i]
-        i++
-      }
-      continue
-    }
-
-    // Handle block comments (/* */)
-    if (char === '/' && nextChar === '*') {
-      current += '/*'
-      i += 2
-      while (i < sqlText.length) {
-        if (sqlText[i] === '*' && sqlText[i + 1] === '/') {
-          current += '*/'
-          i += 2
-          break
-        } else {
-          current += sqlText[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Statement separator (MSSQL uses ; or GO, but GO must be on its own line)
-    if (char === ';') {
-      const stmt = current.trim()
-      if (stmt) {
-        statements.push(stmt)
-      }
-      current = ''
-      i++
-      continue
-    }
-
-    current += char
-    i++
-  }
-
-  const lastStmt = current.trim()
-  if (lastStmt) {
-    statements.push(lastStmt)
-  }
-
-  return statements
-}
-
-/**
  * Check if a SQL statement is data-returning (SELECT, etc.)
  */
 function isDataReturningStatement(sqlText: string): boolean {
@@ -413,7 +294,7 @@ export class MSSQLAdapter implements DatabaseAdapter {
     const results: StatementResult[] = []
 
     try {
-      const statements = splitStatements(sqlQuery)
+      const statements = splitMssqlStatements(sqlQuery)
 
       for (let i = 0; i < statements.length; i++) {
         const statement = statements[i]
@@ -514,7 +395,7 @@ export class MSSQLAdapter implements DatabaseAdapter {
         unregisterQuery(options.executionId)
       }
       await pool.close()
-      await closeTunnel()
+      closeTunnel()
     }
   }
 

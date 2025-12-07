@@ -1,20 +1,21 @@
 import { Client } from 'pg'
-import type {
-  ConnectionConfig,
-  SchemaInfo,
-  TableInfo,
-  ColumnInfo,
-  QueryField,
-  ForeignKeyInfo,
-  TableDefinition,
-  ColumnDefinition,
-  ConstraintDefinition,
-  IndexDefinition,
-  SequenceInfo,
-  CustomTypeInfo,
-  StatementResult,
-  RoutineInfo,
-  RoutineParameterInfo
+import {
+  resolvePostgresType,
+  type ConnectionConfig,
+  type SchemaInfo,
+  type TableInfo,
+  type ColumnInfo,
+  type QueryField,
+  type ForeignKeyInfo,
+  type TableDefinition,
+  type ColumnDefinition,
+  type ConstraintDefinition,
+  type IndexDefinition,
+  type SequenceInfo,
+  type CustomTypeInfo,
+  type StatementResult,
+  type RoutineInfo,
+  type RoutineParameterInfo
 } from '@shared/index'
 import type {
   DatabaseAdapter,
@@ -25,227 +26,10 @@ import type {
 } from '../db-adapter'
 import { registerQuery, unregisterQuery } from '../query-tracker'
 import { closeTunnel, createTunnel } from '../ssh-tunnel-service'
+import { splitStatements } from '../lib/sql-parser'
 
-/**
- * PostgreSQL OID to Type Name Mapping
- * Reference: https://github.com/postgres/postgres/blob/master/src/include/catalog/pg_type.dat
- */
-const PG_TYPE_MAP: Record<number, string> = {
-  16: 'boolean',
-  17: 'bytea',
-  18: 'char',
-  19: 'name',
-  20: 'bigint',
-  21: 'smallint',
-  23: 'integer',
-  24: 'regproc',
-  25: 'text',
-  26: 'oid',
-  114: 'json',
-  142: 'xml',
-  600: 'point',
-  601: 'lseg',
-  602: 'path',
-  603: 'box',
-  604: 'polygon',
-  628: 'line',
-  700: 'real',
-  701: 'double precision',
-  718: 'circle',
-  790: 'money',
-  829: 'macaddr',
-  869: 'inet',
-  650: 'cidr',
-  1042: 'char',
-  1043: 'varchar',
-  1082: 'date',
-  1083: 'time',
-  1114: 'timestamp',
-  1184: 'timestamptz',
-  1186: 'interval',
-  1266: 'timetz',
-  1560: 'bit',
-  1562: 'varbit',
-  1700: 'numeric',
-  2950: 'uuid',
-  3802: 'jsonb',
-  3904: 'int4range',
-  3906: 'numrange',
-  3908: 'tsrange',
-  3910: 'tstzrange',
-  3912: 'daterange',
-  3926: 'int8range',
-  // Array types (common ones)
-  1000: 'boolean[]',
-  1001: 'bytea[]',
-  1005: 'smallint[]',
-  1007: 'integer[]',
-  1009: 'text[]',
-  1014: 'char[]',
-  1015: 'varchar[]',
-  1016: 'bigint[]',
-  1021: 'real[]',
-  1022: 'double precision[]',
-  1028: 'oid[]',
-  1115: 'timestamp[]',
-  1182: 'date[]',
-  1183: 'time[]',
-  1231: 'numeric[]',
-  2951: 'uuid[]',
-  3807: 'jsonb[]',
-  199: 'json[]'
-}
-
-/**
- * Resolve PostgreSQL OID to human-readable type name
- */
-function resolvePostgresType(dataTypeID: number): string {
-  return PG_TYPE_MAP[dataTypeID] ?? `unknown(${dataTypeID})`
-}
-
-/**
- * Split SQL into individual statements, respecting string literals and comments
- * Handles: single quotes, double quotes, dollar-quoted strings, line comments (--)
- * and block comments
- */
-function splitStatements(sql: string): string[] {
-  const statements: string[] = []
-  let current = ''
-  let i = 0
-
-  while (i < sql.length) {
-    const char = sql[i]
-    const nextChar = sql[i + 1]
-
-    // Handle single-quoted strings
-    if (char === "'") {
-      current += char
-      i++
-      while (i < sql.length) {
-        if (sql[i] === "'" && sql[i + 1] === "'") {
-          // Escaped single quote
-          current += "''"
-          i += 2
-        } else if (sql[i] === "'") {
-          current += "'"
-          i++
-          break
-        } else {
-          current += sql[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Handle double-quoted identifiers
-    if (char === '"') {
-      current += char
-      i++
-      while (i < sql.length) {
-        if (sql[i] === '"' && sql[i + 1] === '"') {
-          // Escaped double quote
-          current += '""'
-          i += 2
-        } else if (sql[i] === '"') {
-          current += '"'
-          i++
-          break
-        } else {
-          current += sql[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Handle dollar-quoted strings (PostgreSQL-specific)
-    if (char === '$') {
-      // Find the tag (e.g., $tag$ or $$)
-      let tag = '$'
-      let j = i + 1
-      while (j < sql.length && (sql[j].match(/[a-zA-Z0-9_]/) || sql[j] === '$')) {
-        tag += sql[j]
-        if (sql[j] === '$') {
-          j++
-          break
-        }
-        j++
-      }
-      if (tag.endsWith('$') && tag.length >= 2) {
-        // Valid dollar quote tag
-        current += tag
-        i = j
-        // Find closing tag
-        const closeIdx = sql.indexOf(tag, i)
-        if (closeIdx !== -1) {
-          current += sql.substring(i, closeIdx + tag.length)
-          i = closeIdx + tag.length
-        } else {
-          // No closing tag, consume rest
-          current += sql.substring(i)
-          i = sql.length
-        }
-        continue
-      }
-    }
-
-    // Handle line comments (--)
-    if (char === '-' && nextChar === '-') {
-      current += '--'
-      i += 2
-      while (i < sql.length && sql[i] !== '\n') {
-        current += sql[i]
-        i++
-      }
-      continue
-    }
-
-    // Handle block comments (/* */)
-    if (char === '/' && nextChar === '*') {
-      current += '/*'
-      i += 2
-      let depth = 1
-      while (i < sql.length && depth > 0) {
-        if (sql[i] === '/' && sql[i + 1] === '*') {
-          current += '/*'
-          depth++
-          i += 2
-        } else if (sql[i] === '*' && sql[i + 1] === '/') {
-          current += '*/'
-          depth--
-          i += 2
-        } else {
-          current += sql[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Statement separator
-    if (char === ';') {
-      const stmt = current.trim()
-      if (stmt) {
-        statements.push(stmt)
-      }
-      current = ''
-      i++
-      continue
-    }
-
-    current += char
-    i++
-  }
-
-  // Don't forget the last statement (without trailing semicolon)
-  const lastStmt = current.trim()
-  if (lastStmt) {
-    statements.push(lastStmt)
-  }
-
-  return statements
-}
+/** Split SQL into statements for PostgreSQL */
+const splitPgStatements = (sql: string) => splitStatements(sql, 'postgresql')
 
 /**
  * Check if a SQL statement is data-returning (SELECT, RETURNING, etc.)
@@ -332,7 +116,7 @@ export class PostgresAdapter implements DatabaseAdapter {
     const results: StatementResult[] = []
 
     try {
-      const statements = splitStatements(sql)
+      const statements = splitPgStatements(sql)
 
       for (let i = 0; i < statements.length; i++) {
         const statement = statements[i]
@@ -440,7 +224,7 @@ export class PostgresAdapter implements DatabaseAdapter {
       await client.query('COMMIT')
       return { rowsAffected, results }
     } catch (error) {
-      await client.query('ROLLBACK').catch(() => {})
+      await client.query('ROLLBACK').catch(() => { })
       throw error
     } finally {
       await client.end()
