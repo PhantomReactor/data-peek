@@ -24,6 +24,10 @@ import type {
   QueryOptions
 } from '../db-adapter'
 import { registerQuery, unregisterQuery } from '../query-tracker'
+import { splitStatements } from '../lib/sql-parser'
+
+/** Split SQL into statements for MySQL */
+const splitMySqlStatements = (sql: string) => splitStatements(sql, 'mysql')
 
 /**
  * MySQL type codes to type name mapping
@@ -94,138 +98,6 @@ function normalizeRow<T extends Record<string, unknown>>(row: Record<string, unk
 }
 
 /**
- * Split SQL into individual statements, respecting string literals and comments
- */
-function splitStatements(sql: string): string[] {
-  const statements: string[] = []
-  let current = ''
-  let i = 0
-
-  while (i < sql.length) {
-    const char = sql[i]
-    const nextChar = sql[i + 1]
-
-    // Handle single-quoted strings
-    if (char === "'") {
-      current += char
-      i++
-      while (i < sql.length) {
-        if (sql[i] === "'" && sql[i + 1] === "'") {
-          current += "''"
-          i += 2
-        } else if (sql[i] === '\\' && sql[i + 1] === "'") {
-          // MySQL escape sequence
-          current += "\\'"
-          i += 2
-        } else if (sql[i] === "'") {
-          current += "'"
-          i++
-          break
-        } else {
-          current += sql[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Handle double-quoted strings (when ANSI_QUOTES mode)
-    if (char === '"') {
-      current += char
-      i++
-      while (i < sql.length) {
-        if (sql[i] === '"' && sql[i + 1] === '"') {
-          current += '""'
-          i += 2
-        } else if (sql[i] === '"') {
-          current += '"'
-          i++
-          break
-        } else {
-          current += sql[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Handle backtick-quoted identifiers (MySQL-specific)
-    if (char === '`') {
-      current += char
-      i++
-      while (i < sql.length) {
-        if (sql[i] === '`' && sql[i + 1] === '`') {
-          current += '``'
-          i += 2
-        } else if (sql[i] === '`') {
-          current += '`'
-          i++
-          break
-        } else {
-          current += sql[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Handle line comments (-- or #)
-    if ((char === '-' && nextChar === '-') || char === '#') {
-      if (char === '#') {
-        current += '#'
-        i++
-      } else {
-        current += '--'
-        i += 2
-      }
-      while (i < sql.length && sql[i] !== '\n') {
-        current += sql[i]
-        i++
-      }
-      continue
-    }
-
-    // Handle block comments (/* */)
-    if (char === '/' && nextChar === '*') {
-      current += '/*'
-      i += 2
-      while (i < sql.length) {
-        if (sql[i] === '*' && sql[i + 1] === '/') {
-          current += '*/'
-          i += 2
-          break
-        } else {
-          current += sql[i]
-          i++
-        }
-      }
-      continue
-    }
-
-    // Statement separator
-    if (char === ';') {
-      const stmt = current.trim()
-      if (stmt) {
-        statements.push(stmt)
-      }
-      current = ''
-      i++
-      continue
-    }
-
-    current += char
-    i++
-  }
-
-  const lastStmt = current.trim()
-  if (lastStmt) {
-    statements.push(lastStmt)
-  }
-
-  return statements
-}
-
-/**
  * Check if a SQL statement is data-returning (SELECT, SHOW, etc.)
  */
 function isDataReturningStatement(sql: string): boolean {
@@ -291,7 +163,7 @@ export class MySQLAdapter implements DatabaseAdapter {
     const results: StatementResult[] = []
 
     try {
-      const statements = splitStatements(sql)
+      const statements = splitMySqlStatements(sql)
 
       for (let i = 0; i < statements.length; i++) {
         const statement = statements[i]
