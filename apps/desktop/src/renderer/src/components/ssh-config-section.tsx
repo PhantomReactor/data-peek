@@ -1,5 +1,3 @@
-'use client'
-
 import { FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -54,7 +52,7 @@ export function SSHConfigSection({ config, onConfigChange }: SSHConfigSectionPro
           type="number"
           placeholder="22"
           value={String(config.port)}
-          onChange={(e) => updateConfig({ port: parseInt(e.target.value) || 22 })}
+          onChange={(e) => updateConfig({ port: parseInt(e.target.value, 10) || 22 })}
         />
       </div>
 

@@ -35,20 +35,19 @@ export async function createTunnel(config: ConnectionConfig): Promise<TunnelSess
             if (err) {
               console.error('Forward error:', err)
               socket.destroy()
-              closeTunnel({ ssh, server })
               return
             }
 
             stream.on('error', (err: Error) => {
               console.error('Stream error:', err)
-              closeTunnel({ ssh, server })
+              stream.end()
               socket.destroy()
             })
 
             socket.on('error', (err) => {
               console.error('Socket error:', err)
-              stream.end()
-              closeTunnel({ ssh, server })
+              stream.destroy()
+              socket.destroy()
             })
             socket.pipe(stream).pipe(socket)
           })
@@ -111,6 +110,10 @@ function closeSSHSession(ssh: SSHClient | null) {
 
 function closeServer(server: net.Server | null) {
   if (server) {
-    server.close()
+    server.close((err) => {
+      if (err) {
+        console.error('Error closing TCP server:', err)
+      }
+    })
   }
 }

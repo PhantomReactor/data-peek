@@ -437,14 +437,14 @@ export function AddConnectionDialog({
 
     const sshConfigForConnection = ssh
       ? {
-        host: sshConfig.host,
-        port: sshConfig.port,
-        user: sshConfig.user,
-        authMethod: sshConfig.authMethod,
-        password: sshConfig.password,
-        privateKeyPath: sshConfig.privateKeyPath,
-        passphrase: sshConfig.passphrase
-      }
+          host: sshConfig.host,
+          port: sshConfig.port,
+          user: sshConfig.user,
+          authMethod: sshConfig.authMethod,
+          password: sshConfig.password,
+          privateKeyPath: sshConfig.privateKeyPath,
+          passphrase: sshConfig.passphrase
+        }
       : undefined
 
     return {
@@ -549,12 +549,12 @@ export function AddConnectionDialog({
   const isValid =
     inputMode === 'connection-string'
       ? connectionString &&
-      !parseError &&
-      host &&
-      port &&
-      database &&
-      (isUserRequired ? user : true) &&
-      isSSHValid()
+        !parseError &&
+        host &&
+        port &&
+        database &&
+        (isUserRequired ? user : true) &&
+        isSSHValid()
       : host && port && database && (isUserRequired ? user : true) && isSSHValid()
 
   return (
@@ -580,10 +580,11 @@ export function AddConnectionDialog({
               <button
                 type="button"
                 onClick={() => handleDbTypeChange('postgresql')}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${dbType === 'postgresql'
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  dbType === 'postgresql'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                }`}
               >
                 <PostgreSQLIcon className="size-4" />
                 PostgreSQL
@@ -591,10 +592,11 @@ export function AddConnectionDialog({
               <button
                 type="button"
                 onClick={() => handleDbTypeChange('mysql')}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${dbType === 'mysql'
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  dbType === 'mysql'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                }`}
               >
                 <MySQLIcon className="size-4" />
                 MySQL
@@ -602,10 +604,11 @@ export function AddConnectionDialog({
               <button
                 type="button"
                 onClick={() => handleDbTypeChange('mssql')}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${dbType === 'mssql'
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  dbType === 'mssql'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                }`}
               >
                 <MSSQLIcon className="size-4" />
                 SQL Server
@@ -618,10 +621,11 @@ export function AddConnectionDialog({
             <button
               type="button"
               onClick={() => setInputMode('manual')}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${inputMode === 'manual'
+              className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                inputMode === 'manual'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
-                }`}
+              }`}
             >
               <Settings2 className="size-4" />
               Manual
@@ -629,10 +633,11 @@ export function AddConnectionDialog({
             <button
               type="button"
               onClick={() => setInputMode('connection-string')}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${inputMode === 'connection-string'
+              className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                inputMode === 'connection-string'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
-                }`}
+              }`}
             >
               <Link className="size-4" />
               Connection String
@@ -754,7 +759,7 @@ export function AddConnectionDialog({
                   id="user"
                   placeholder={
                     dbType === 'mssql' &&
-                      mssqlOptions?.authentication === 'ActiveDirectoryIntegrated'
+                    mssqlOptions?.authentication === 'ActiveDirectoryIntegrated'
                       ? 'Not required for Active Directory Integrated'
                       : dbType === 'mssql'
                         ? 'sa'
@@ -812,10 +817,11 @@ export function AddConnectionDialog({
           {testResult && (
             <div
               ref={testResultRef}
-              className={`flex items-center gap-2 rounded-md p-3 text-sm ${testResult === 'success'
+              className={`flex items-center gap-2 rounded-md p-3 text-sm ${
+                testResult === 'success'
                   ? 'bg-green-500/10 text-green-500'
                   : 'bg-destructive/10 text-destructive'
-                }`}
+              }`}
             >
               {testResult === 'success' ? (
                 <>
